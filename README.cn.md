@@ -229,7 +229,7 @@ sudo apt-get install -y $(cat make-fnnas/script/ubuntu2404-make-fnnas-depends)
 | 参数  | 含义          | 说明        |
 | ---- | ------------- | ---------- |
 | -r   | debs_repo     | 指定 github.com 的 debs 内核仓库的 `<owner>/<repo>`。默认值：`ophub/fnnas` |
-| -k   | debs_version  | 指定 [kernel](https://github.com/ophub/fnnas/releases/tag/kernel_fnnas) 名称，如 `-k 6.12.63` 。默认值：`6.12.y` |
+| -k   | dtbs_version  | 指定 [kernel](https://github.com/ophub/fnnas/releases/tag/kernel_fnnas) 名称，如 `-k 6.12.63` 。默认值：`6.12.y` |
 | -e   | debs_install  | 设置是否安装官方提供的不同平台的 debs 格式内核包。选项：`amlogic` / `rockchip` / `allwinner` / `none`。默认值：`none` |
 | -t   | dtbs_install  | 设置是否补充安装官方没有的 dtbs 文件。可选项 `true` / `false`。默认值：`false` |
 
@@ -249,7 +249,7 @@ sudo apt-get install -y $(cat make-fnnas/script/ubuntu2404-make-fnnas-depends)
     build_target: kernel
     fnnas_path: fnnas/*.img
     debs_repo: ophub/fnnas
-    debs_version: 6.12.y
+    dtbs_version: 6.12.y
     debs_install: amlogic
     dtbs_install: true
 ```
@@ -260,7 +260,7 @@ sudo apt-get install -y $(cat make-fnnas/script/ubuntu2404-make-fnnas-depends)
 |------------------|---------------|----------------------------------------------|
 | fnnas_path       | 无            | 设置官方 Arm64 原版 FnNAS 镜像文件的路径。        |
 | debs_repo        | ophub/fnnas   | 指定 github.com 的 debs 内核仓库的 `<owner>/<repo>`，功能参考 `-r` |
-| debs_version     | 6.12.y        | 设置内核版本号。功能参考 `-k`                    |
+| dtbs_version     | 6.12.y        | 设置内核版本号。功能参考 `-k`                    |
 | debs_install     | none          | 设置是否安装官方提供的不同平台的 debs 格式内核包。功能参考 `-e`   |
 | dtbs_install     | false         | 设置是否补充安装官方没有的 dtbs 文件。功能参考 `-t` |
 

@@ -29,13 +29,6 @@ on:
         description: "Set fnnas debs repository"
         required: false
         default: "ophub/fnnas"
-      debs_version:
-        description: "Set fnnas debs version"
-        required: false
-        default: "6.12.y"
-        type: choice
-        options:
-          - 6.12.y
       debs_install:
         description: "Install kernel debs files"
         required: false
@@ -46,6 +39,13 @@ on:
           - allwinner
           - rockchip
           - none
+      dtbs_version:
+        description: "Set fnnas dtbs version"
+        required: false
+        default: "6.12.y"
+        type: choice
+        options:
+          - 6.12.y
       dtbs_install:
         description: "Install kernel dtbs files"
         required: false
@@ -157,14 +157,14 @@ jobs:
 
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: Compile the fnnas kernel [ ${{ inputs.debs_version }} ]
+      - name: Compile the fnnas kernel [ ${{ inputs.dtbs_version }} ]
         uses: ophub/fnnas@main
         if: ${{ steps.down.outputs.status == 'success' && !cancelled() }}
         with:
           build_target: kernel
           fnnas_path: fnnas/*.img.xz
           debs_repo: ${{ inputs.debs_repo }}
-          debs_version: ${{ inputs.debs_version }}
+          dtbs_version: ${{ inputs.dtbs_version }}
           debs_install: ${{ inputs.debs_install }}
           dtbs_install: ${{ inputs.dtbs_install }}
 

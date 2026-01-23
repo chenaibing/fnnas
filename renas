@@ -459,9 +459,9 @@ query_kernel() {
                 # Query the latest kernel version
                 latest_version="$(
                     curl -fsSL \
-                        ${kernel_api}/releases/expanded_assets/kernel_${key} |
-                        grep -oE "${kernel_verpatch}\.[0-9]+(-[a-zA-Z0-9]+)?\.tar\.gz" |
-                        sed -E 's/(-[a-zA-Z0-9]+)?\.tar\.gz//' |
+                        ${kernel_api}/releases/expanded_assets/kernel_fnnas |
+                        grep -oE "${kernel_verpatch}\.[0-9]+\-${key}\.tar\.gz" |
+                        sed -E "s/-${key}\.tar\.gz//" |
                         sort -urV | head -n 1
                 )"
 
@@ -496,7 +496,7 @@ download_kernel() {
             i="1"
             for kernel_var in "${down_kernel_list[@]}"; do
                 if [[ ! -d "${kernel_path}/${kernel_var}/${kernel_var}-${key}" ]]; then
-                    kernel_down_from="https://github.com/${kernel_repo}/releases/download/kernel_${key}/${kernel_var}-${key}.tar.gz"
+                    kernel_down_from="https://github.com/${kernel_repo}/releases/download/kernel_fnnas/${kernel_var}-${key}.tar.gz"
                     echo -e "${INFO} (${x}.${i}) [ ${key} - ${kernel_var} ] Kernel download from [ ${kernel_down_from} ]"
 
                     # Download the kernel files. If the download fails, try again 10 times.

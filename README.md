@@ -231,7 +231,7 @@ The related parameters correspond to the `local packaging command`, please refer
 | Parameter | Meaning | Description |
 | :-------- | :------ | :---------- |
 | -r | debs_repo | Specifies the `<owner>/<repo>` of the debs kernel repository on github.com. Default value: `ophub/fnnas` |
-| -k | debs_version | Specifies the [kernel](https://github.com/ophub/fnnas/releases/tag/kernel_fnnas) name/version, e.g., `-k 6.12.63`. Default value: `6.12.y` |
+| -k | dtbs_version | Specifies the [kernel](https://github.com/ophub/fnnas/releases/tag/kernel_fnnas) name/version, e.g., `-k 6.12.63`. Default value: `6.12.y` |
 | -e | debs_install | Sets whether to install official `.deb` kernel packages for different platforms. Options: `amlogic` / `rockchip` / `allwinner` / `none`. Default value: `none` |
 | -t | dtbs_install | Sets whether to install additional `dtbs` files missing from the official release. Options: `true` / `false`. Default value: `false` |
 
@@ -250,7 +250,7 @@ For details on how to compile the FnNAS-specific kernel, please refer to the ins
   with:
     build_target: kernel
     fnnas_path: fnnas/*.img
-    debs_version: 6.12.y
+    dtbs_version: 6.12.y
     debs_install: amlogic
     dtbs_install: true
 ```
@@ -261,7 +261,7 @@ The relevant parameters correspond to the `local packaging command`. Please refe
 |------------------|---------------|----------------------------------------------|
 | fnnas_path       | None          | Sets the path to the official original Arm64 FnNAS image file. |
 | debs_repo        | ophub/fnnas   | Sets the `<owner>/<repo>` of the debs kernel repository on github.com. Refer to `-r` for functionality. |
-| debs_version     | 6.12.y        | Sets the kernel version. Refer to `-k` for functionality. |
+| dtbs_version     | 6.12.y        | Sets the kernel version. Refer to `-k` for functionality. |
 | debs_install     | none          | Sets whether to install official kernel packages in `.deb` format. Refer to `-e` for functionality. |
 | dtbs_install     | false         | Sets whether to install additional `dtbs` files missing from the official release. Refer to `-t` for functionality. |
 
