@@ -1,6 +1,6 @@
 #=====================================================================================
 # https://github.com/ophub/fnnas
-# Description: Build FnNAS Image
+# Description: Build FnNAS Image (Support RK3128)
 #=====================================================================================
 
 name: Build FnNAS Image
@@ -12,7 +12,7 @@ on:
       fnnas_base_version:
         description: "Select fnnas base image version"
         required: false
-        default: "amlogic_693"
+        default: "rockchip_692"  # 切换为瑞芯微基础镜像
         type: choice
         options:
           - allwinner_691
@@ -21,7 +21,7 @@ on:
       fnnas_board:
         description: "Select fnnas device board"
         required: false
-        default: "all"
+        default: "rk3128"  # 默认选中RK3128
         type: choice
         options:
           - all
@@ -95,6 +95,7 @@ on:
           - r68s
           - renegade-rk3328
           - rk3318-box
+          - rk3128  # 新增RK3128设备选项
           - rock-5-itx
           - rock5b
           - rock5c
@@ -217,18 +218,19 @@ on:
         options:
           - ophub/fnnas
       fnnas_kernel:
-        description: "Select fnnas kernel version"
+        description: "Select fnnas kernel version (5.15.y for RK3128)"
         required: false
-        default: "6.12.y"
+        default: "5.15.y"  # RK3128适配5.15.y内核
         type: choice
         options:
+          - 5.15.y  # 新增RK3128适配的低版本内核
           - 6.12.y
           - 6.18.y
           - 6.12.y_6.18.y
       auto_kernel:
         description: "Auto use the latest kernel"
         required: false
-        default: true
+        default: false  # RK3128关闭自动内核，避免版本不兼容
         type: boolean
       rootfs_expand:
         description: "Set rootfs expansion size(GiB)"
@@ -413,6 +415,20 @@ jobs:
           echo "build_tag=${build_tag}" >> ${GITHUB_ENV}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
+      # 新增：补充RK3128设备树和配置文件
+      - name: Add RK3128 device support files
+        if: ${{ steps.down.outputs.status == 'success' && !cancelled() }}
+        run: |
+          # 创建RK3128设备树目录
+          mkdir -p /builder/fnnas/boot/dtb/rockchip/
+          # 下载RK3128设备树（适配5.15.y内核）
+          curl -fsSL https://raw.githubusercontent.com/rockchip-linux/linux/rockchip-rk3128-linux/arch/arm/boot/dts/rk3128.dts -o /builder/fnnas/boot/dtb/rockchip/rk3128.dts
+          # 编译设备树为dtb
+          dtc -I dts -O dtb -o /builder/fnnas/boot/dtb/rockchip/rk3128.dtb /builder/fnnas/boot/dtb/rockchip/rk3128.dts
+          # 创建设备数据库配置
+          mkdir -p /builder/fnnas/etc/
+          echo "rk3128|RK3128-Generic|rockchip|rk3128|default|rk3128.dtb|none|none|none|none" >> /builder/fnnas/etc/model_database.conf
+
       - name: Packaging fnnas
         if: ${{ steps.down.outputs.status == 'success' && !cancelled() }}
         uses: ophub/fnnas@main
@@ -443,3 +459,5 @@ jobs:
             - 基于 fnnas.com [官方 Arm64 镜像](https://github.com/ophub/fnnas/releases/tag/fnnas_base_image) 构建，
               完整保留官方原版系统体验。
               扩展支持更多基于 Amlogic、Rockchip 及 Allwinner 平台的设备。
+            - Add support for Rockchip RK3128 chip (kernel 5.15.y)
+            - 新增对瑞芯微RK3128芯片的支持（内核5.15.y）
