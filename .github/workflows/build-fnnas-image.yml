@@ -12,7 +12,7 @@ on:
       fnnas_base_version:
         description: "Select fnnas base image version"
         required: false
-        default: "rockchip_692"  # 切换为瑞芯微基础镜像
+        default: "rockchip_692"  # 瑞芯微基础镜像
         type: choice
         options:
           - allwinner_691
@@ -21,7 +21,7 @@ on:
       fnnas_board:
         description: "Select fnnas device board"
         required: false
-        default: "rk3128"  # 默认选中RK3128
+        default: "rk3128"  # 默认RK3128
         type: choice
         options:
           - all
@@ -95,7 +95,7 @@ on:
           - r68s
           - renegade-rk3328
           - rk3318-box
-          - rk3128  # 新增RK3128设备选项
+          - rk3128  # 新增RK3128选项
           - rock-5-itx
           - rock5b
           - rock5c
@@ -220,17 +220,17 @@ on:
       fnnas_kernel:
         description: "Select fnnas kernel version (5.15.y for RK3128)"
         required: false
-        default: "5.15.y"  # RK3128适配5.15.y内核
+        default: "5.15.y"  # RK3128适配内核
         type: choice
         options:
-          - 5.15.y  # 新增RK3128适配的低版本内核
+          - 5.15.y
           - 6.12.y
           - 6.18.y
           - 6.12.y_6.18.y
       auto_kernel:
         description: "Auto use the latest kernel"
         required: false
-        default: false  # RK3128关闭自动内核，避免版本不兼容
+        default: false  # 关闭自动内核
         type: boolean
       rootfs_expand:
         description: "Set rootfs expansion size(GiB)"
@@ -274,9 +274,9 @@ jobs:
           sudo rm -f /swapfile /mnt/swapfile
           sudo -E apt-get -y update
           sudo -E apt-get -y purge azure-cli ghc* zulu* llvm* firefox google* dotnet* powershell openjdk* mongodb* moby* || true
-          sudo -E apt-get -y install $(curl -fsSL https://ophub.org/ubuntu2404-make-fnnas-depends)
+          # 新增：安装设备树编译工具dtc
+          sudo -E apt-get -y install $(curl -fsSL https://ophub.org/ubuntu2404-make-fnnas-depends) device-tree-compiler
           sudo -E systemctl daemon-reload
-          #sudo -E apt-get -y full-upgrade
           sudo -E apt-get -y autoremove --purge
           sudo -E apt-get clean
           sudo sed -i '/NVM_DIR/d;/skel/d' /root/{.bashrc,.profile}
@@ -321,37 +321,24 @@ jobs:
           fnnas_base_version="${{ inputs.fnnas_base_version }}"
           [[ -n "${fnnas_base_version}" ]] && build_tag="fnnas_${fnnas_base_version}" || build_tag="fnnas_save"
 
-          # -------------------------------------------------------
           # Case A: URL specified
-          # -------------------------------------------------------
           if [[ -n "${input_url}" ]]; then
               echo "Custom URL detected: ${input_url}"
-
-              # Remove any parameters that may be included in the URL (?...)
               clean_url="${input_url%%\?*}"
-
-              # Regex match GitHub Release URL format
-              # Format: https://github.com/<owner>/<repo>/releases/download/<tag>/<filename>
               regex="github\.com/([^/]+)/([^/]+)/releases/download/([^/]+)/(.+)"
 
               if [[ "${clean_url}" =~ $regex ]]; then
-                  # Extract information
                   owner="${BASH_REMATCH[1]}"
                   repo="${BASH_REMATCH[2]}"
                   tag="${BASH_REMATCH[3]}"
                   filename="${BASH_REMATCH[4]}"
 
-                  echo "Detected GitHub Release URL."
-                  echo "Repo: $owner/$repo | Tag: $tag | File: $filename"
-
-                  # Use gh cli to download
                   gh release download "${tag}" \
                       --repo "${owner}/${repo}" \
                       --pattern "${filename}" \
                       --dir "fnnas" \
                       --clobber
 
-                  # Check download result
                   if [[ -f "fnnas/${filename}" ]]; then
                       echo "Download success via gh-cli."
                       echo "status=success" >> ${GITHUB_OUTPUT}
@@ -361,15 +348,12 @@ jobs:
                       exit 1
                   fi
               else
-                  # If not a standard Release URL (e.g., API URL or third-party URL), fallback to curl
                   echo "Using curl fallback..."
                   latest_url="${input_url}"
                   fnnas_filename=$(basename "${clean_url}")
               fi
 
-          # -------------------------------------------------------
-          # Case B: Automatically fetch the latest version
-          # -------------------------------------------------------
+          # Case B: Auto fetch latest version
           else
               echo "Auto-detecting latest release..."
               latest_version=$(curl -s \
@@ -394,9 +378,7 @@ jobs:
               fnnas_filename="$(echo ${latest_version} | jq -r '.name')"
           fi
 
-          # -------------------------------------------------------
-          # Execute curl download (only if the above gh did not run)
-          # -------------------------------------------------------
+          # Execute curl download
           echo "Downloading: ${fnnas_filename}"
           echo "Source: ${latest_url}"
 
@@ -415,19 +397,47 @@ jobs:
           echo "build_tag=${build_tag}" >> ${GITHUB_ENV}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      # 新增：补充RK3128设备树和配置文件
-      - name: Add RK3128 device support files
+      # 修复：本地生成RK3128通用设备树，不再依赖外部下载
+      - name: Add RK3128 device support files (Local Generate)
         if: ${{ steps.down.outputs.status == 'success' && !cancelled() }}
         run: |
-          # 创建RK3128设备树目录
+          # 1. 创建RK3128设备树目录
           mkdir -p /builder/fnnas/boot/dtb/rockchip/
-          # 下载RK3128设备树（适配5.15.y内核）
-          curl -fsSL https://raw.githubusercontent.com/rockchip-linux/linux/rockchip-rk3128-linux/arch/arm/boot/dts/rk3128.dts -o /builder/fnnas/boot/dtb/rockchip/rk3128.dts
-          # 编译设备树为dtb
-          dtc -I dts -O dtb -o /builder/fnnas/boot/dtb/rockchip/rk3128.dtb /builder/fnnas/boot/dtb/rockchip/rk3128.dts
-          # 创建设备数据库配置
           mkdir -p /builder/fnnas/etc/
+
+          # 2. 生成通用RK3128设备树（DTS）文件（适配5.15.y内核）
+          cat > /builder/fnnas/boot/dtb/rockchip/rk3128.dts << EOF
+          /dts-v1/;
+          #include "rk3128.dtsi"
+
+          / {
+              model = "Generic RK3128 Board";
+              compatible = "rockchip,rk3128", "rockchip,generic";
+
+              chosen {
+                  bootargs = "console=ttyS0,115200n8 root=/dev/mmcblk0p2 rw rootwait";
+              };
+
+              memory@60000000 {
+                  device_type = "memory";
+                  reg = <0x60000000 0x20000000>; // 512MB RAM (RK3128常见配置)
+              };
+          };
+          EOF
+
+          # 3. 编译DTS为DTB（设备树二进制文件）
+          dtc -I dts -O dtb -o /builder/fnnas/boot/dtb/rockchip/rk3128.dtb /builder/fnnas/boot/dtb/rockchip/rk3128.dts
+
+          # 4. 添加RK3128到设备数据库（fnnas识别用）
           echo "rk3128|RK3128-Generic|rockchip|rk3128|default|rk3128.dtb|none|none|none|none" >> /builder/fnnas/etc/model_database.conf
+
+          # 5. 验证文件是否生成成功
+          if [[ -f "/builder/fnnas/boot/dtb/rockchip/rk3128.dtb" ]]; then
+              echo "RK3128 DTB file generated successfully!"
+          else
+              echo "Failed to generate RK3128 DTB file!"
+              exit 1
+          fi
 
       - name: Packaging fnnas
         if: ${{ steps.down.outputs.status == 'success' && !cancelled() }}
